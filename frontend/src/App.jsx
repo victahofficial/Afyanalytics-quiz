@@ -47,6 +47,30 @@ const defaultProducts = [
     },
 ]
 
+const quickLinkIcons = {
+    'Join': <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>,
+    'Scout': <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+    'Calendar': <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+    'Document': <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+    'Download': <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+    'Cart': <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>,
+    'Image': <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>,
+    'Shield': <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+    'Globe': <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
+    'Link': <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+}
+
+const defaultQuickLinks = [
+    { id: 1, label: 'Join\nScouting', url: '/register', icon: 'Join' },
+    { id: 2, label: 'Scout\nMovement', url: '/page/scout-movement', icon: 'Scout' },
+    { id: 3, label: 'Events\n& Camps', url: '/page/events-camps', icon: 'Calendar' },
+    { id: 4, label: 'Official\nLetters', url: '/letters', icon: 'Document' },
+    { id: 5, label: 'Resource\nDownloads', url: '/downloads', icon: 'Download' },
+    { id: 6, label: 'Shop\nGear', url: '/shop', icon: 'Cart' },
+    { id: 7, label: 'Photo\nGallery', url: '/photos', icon: 'Image' },
+    { id: 8, label: 'Rover\nConstitution', url: '/constitution', icon: 'Shield' },
+]
+
 const newsItems = [
     {
         id: 1,
@@ -149,6 +173,7 @@ export default function App() {
                 <Route path="/page/:slug" element={<ContentPage />} />
                 <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/search" element={<SearchPage />} />
             </Route>
 
             <Route
@@ -173,143 +198,337 @@ export default function App() {
                 <Route path="homepage-editor" element={<AdminHomepageEditor token={token} />} />
                 <Route path="downloads" element={<AdminDownloadsManager token={token} />} />
                 <Route path="constitution" element={<AdminConstitutionManager token={token} />} />
+                <Route path="links" element={<AdminLinkManager token={token} />} />
+                <Route path="social" element={<AdminSocialManager token={token} />} />
             </Route>
         </Routes>
     )
 }
 
+function DynamicSocialStrip({ color = '#16a34a' }) {
+    const [accounts, setAccounts] = useState([])
+
+    useEffect(() => {
+        fetch(`${API_URL}/api/social/feed`)
+            .then(async r => {
+                const text = await r.text()
+                try { return JSON.parse(text) } catch (e) { return { accounts: [] } }
+            })
+            .then(data => setAccounts(Array.isArray(data?.accounts) ? data.accounts : []))
+            .catch(() => {})
+    }, [])
+
+    const pIcons = {
+        Facebook: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/></svg>,
+        Instagram: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>,
+        "Twitter (X)": <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>,
+        TikTok: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>,
+        YouTube: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>,
+        LinkedIn: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zM7.119 20.452H3.554V9h3.565v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.454C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0z"/></svg>
+    }
+
+    if (accounts.length === 0) {
+        return (
+            <div className="social-strip">
+                <a href="https://www.instagram.com/flamingoroverscouts/" target="_blank" rel="noopener noreferrer" title="Instagram" style={{ color: color }}>
+                    {pIcons.Instagram}
+                </a>
+            </div>
+        )
+    }
+
+    return (
+        <div className="social-strip" style={{ display: 'flex', gap: '15px' }}>
+            {accounts.map(acc => (
+                <a key={acc.id} href={acc.url} target="_blank" rel="noopener noreferrer" title={acc.platform} style={{ display: 'flex', alignItems: 'center', color: color, transition: 'transform 0.2s' }} onMouseOver={e => e.currentTarget.style.transform='scale(1.2)'} onMouseOut={e => e.currentTarget.style.transform='scale(1)'}>
+                    {pIcons[acc.platform] || <span style={{ fontSize: 10 }}>{acc.platform}</span>}
+                </a>
+            ))}
+        </div>
+    )
+}
+
 function PublicLayout({ user, isAdmin, onLogout }) {
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+    const navigate = useNavigate()
+
+    const navItems = [
+        { label: 'Home', to: '/' },
+        { 
+            label: 'Who We Are', 
+            children: [
+                { label: 'Scout Movement', to: '/page/scout-movement' },
+                { label: 'Scouting Education', to: '/page/scouting-education' },
+                { label: 'Scout Method', to: '/page/scout-method' },
+                { label: 'Scout Promise & Law', to: '/page/scout-promise-law' },
+                { label: 'Scouting\'s History', to: '/page/scouting-history' },
+                { label: 'About Us', to: '/page/about-us' }
+            ]
+        },
+        {
+            label: 'What We Do',
+            children: [
+                { label: 'Environment', to: '/page/environment' },
+                { label: 'Education', to: '/page/education' },
+                { label: 'Peace', to: '/page/peace' },
+                { label: 'Community Service', to: '/page/community-service' },
+                { label: 'Events & Camps', to: '/page/events-camps' }
+            ]
+        },
+        { label: 'Shop Gear', to: '/shop' },
+        { label: 'News', to: '/news' },
+        {
+            label: 'Help & Support',
+            children: [
+                { label: 'Letters', to: '/letters' },
+                { label: 'Photos', to: '/photos' },
+                { label: 'Downloads', to: '/downloads' },
+                { label: 'Constitution', to: '/constitution' }
+            ]
+        }
+    ]
+
     return (
         <div className="site-shell">
-            <header className="topbar">
-                <div className="container topbar-inner" style={{ flexWrap: 'nowrap' }}>
-                    <div className="brand-group">
-                        <Link to="/" className="brand">
-                            <div className="brand-mark">F</div>
-                            <div>
-                                <div className="brand-title" style={{ fontSize: '18px' }}>Flamingo Rover Scouts</div>
-                                <div className="brand-subtitle">Scouts & Community</div>
-                            </div>
+            <header className="modern-header" style={{ background: 'white', position: 'fixed', top: 0, width: '100%', zIndex: 1000, boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+                <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '80px', maxWidth: '1400px' }}>
+                    <div className="brand-group" style={{ display: 'flex', alignItems: 'center' }}>
+                        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '15px', textDecoration: 'none' }}>
+                            <img src="/images/logo.jpeg" alt="Logo" style={{ height: '56px', width: '56px', objectFit: 'contain' }} />
+                            <div className="brand-divider" style={{ width: '1px', height: '40px', background: '#e5e7eb' }}></div>
+                            <div className="brand-name" style={{ fontSize: '24px', fontWeight: '800', color: '#111827', letterSpacing: '-0.5px' }}>Flamingo Rovers</div>
                         </Link>
-
-                        <div className="social-strip">
-                            <a href="https://www.instagram.com/flamingoroverscouts/" target="_blank" rel="noopener noreferrer" title="Instagram">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-                            </a>
-                            <a href="https://x.com/flamingorovers" target="_blank" rel="noopener noreferrer" title="X (Twitter)">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                            </a>
-                            <a href="https://www.facebook.com/flamingoroverscouts" target="_blank" rel="noopener noreferrer" title="Facebook">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                            </a>
-                            <a href="https://www.tiktok.com/@flamingoroverscouts" target="_blank" rel="noopener noreferrer" title="TikTok">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
-                            </a>
-                            <a href="https://www.youtube.com/@flamingoroverscouts" target="_blank" rel="noopener noreferrer" title="YouTube">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-                            </a>
-                        </div>
                     </div>
 
-                    <nav className="topnav">
-                        <NavLink to="/" end className={({ isActive }) => navClass(isActive)}>
-                            Home
-                        </NavLink>
-                        <div className="nav-dropdown">
-                            <span className="nav-link" style={{ cursor: 'pointer' }}>Who We Are ▾</span>
-                            <div className="dropdown-menu">
-                                <Link to="/page/scout-movement">Scout Movement</Link>
-                                <Link to="/page/scouting-education">Scouting Education</Link>
-                                <Link to="/page/scout-method">Scout Method</Link>
-                                <Link to="/page/scout-promise-law">Scout Promise & Law</Link>
-                                <Link to="/page/scouting-history">Scouting's History</Link>
-                                <Link to="/page/about-us">About Us</Link>
-                            </div>
-                        </div>
-                        <div className="nav-dropdown">
-                            <span className="nav-link" style={{ cursor: 'pointer' }}>What We Do ▾</span>
-                            <div className="dropdown-menu">
-                                <Link to="/page/environment">Environment</Link>
-                                <Link to="/page/education">Education</Link>
-                                <Link to="/page/peace">Peace</Link>
-                                <Link to="/page/community-service">Community Service</Link>
-                                <Link to="/page/events-camps">Events & Camps</Link>
-                            </div>
-                        </div>
-                        <NavLink to="/shop" className={({ isActive }) => navClass(isActive)}>
-                            Shop
-                        </NavLink>
-                        <NavLink to="/news" className={({ isActive }) => navClass(isActive)}>
-                            News
-                        </NavLink>
-                        <div className="nav-dropdown">
-                            <span className="nav-link" style={{ cursor: 'pointer' }}>Resources ▾</span>
-                            <div className="dropdown-menu">
-                                <Link to="/letters">Letters & Newsletters</Link>
-                                <Link to="/photos">Photo Gallery</Link>
-                                <Link to="/downloads">Downloads</Link>
-                                <Link to="/constitution">Constitution</Link>
-                            </div>
-                        </div>
+                    <nav className="modern-nav-links" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                        {navItems.map((item, idx) => (
+                            item.children ? (
+                                <div key={idx} className="nav-dropdown">
+                                    <span className="nav-link" style={{ cursor: 'pointer', fontWeight: 600, color: '#4B5563' }}>{item.label}</span>
+                                    <div className="dropdown-menu">
+                                        {item.children.map((child, cidx) => (
+                                            <Link key={cidx} to={child.to}>{child.label}</Link>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <NavLink key={idx} to={item.to} end className={({isActive}) => isActive ? "nav-link active" : "nav-link"} style={{ fontWeight: 600 }}>{item.label}</NavLink>
+                            )
+                        ))}
                     </nav>
 
-                    <div className="topbar-actions">
+                    <div className="modern-actions" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                        <svg 
+                            className="action-icon search" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" 
+                            style={{ cursor: 'pointer' }} 
+                            onClick={() => window.location.href='/search'}
+                        >
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        
                         {user ? (
-                            <>
-                                {isAdmin && (
-                                    <Link to="/admin/dashboard" className="btn btn-light">
-                                        Admin
-                                    </Link>
-                                )}
-                                <button className="btn btn-dark" onClick={onLogout}>
-                                    Logout
-                                </button>
-                            </>
+                            <div className="user-actions">
+                                {isAdmin && <Link to="/admin/dashboard" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: 600, fontSize: 15, marginRight: 15 }}>Admin</Link>}
+                                <span onClick={onLogout} style={{ color: '#4b5563', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Sign out</span>
+                            </div>
                         ) : (
-                            <>
-                                <Link to="/login" className="btn btn-light" style={{ padding: '8px 20px' }}>
-                                    Login
-                                </Link>
-                                <Link to="/register" className="btn" style={{ background: '#62259D', color: 'white', padding: '8px 20px' }}>
-                                    Join Scouting
-                                </Link>
-                            </>
+                            <div className="auth-actions">
+                                <Link to="/login" style={{ color: '#4B5563', textDecoration: 'none', fontWeight: 600, fontSize: 15, marginRight: 15 }}>Sign in</Link>
+                                <Link to="/register" style={{ background: '#10B981', color: 'white', padding: '10px 24px', borderRadius: '999px', textDecoration: 'none', fontWeight: 700, fontSize: 15 }}>Register</Link>
+                            </div>
                         )}
+
+                        <button className="mobile-menu-toggle" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} style={{ padding: 4, background: 'none', border: 'none' }}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2">
+                                {mobileMenuOpen ? <path d="M18 6L6 18M6 6l12 12" /> : <path d="M4 6h16M4 12h16M4 18h16" />}
+                            </svg>
+                        </button>
                     </div>
                 </div>
+
+                {/* Mobile Menu Overlay */}
+                {mobileMenuOpen && (
+                    <div className="mobile-menu-panel" style={{ position: 'fixed', top: '80px', left: 0, width: '100%', height: 'calc(100vh - 80px)', background: 'white', zIndex: 999, overflowY: 'auto', padding: '20px' }}>
+                        <div style={{ display: 'grid', gap: '20px' }}>
+                            {navItems.map((item, idx) => (
+                                <div key={idx}>
+                                    {item.children ? (
+                                        <div style={{ marginBottom: '10px' }}>
+                                            <div style={{ fontWeight: 800, color: '#111827', marginBottom: '10px', fontSize: '18px' }}>{item.label}</div>
+                                            <div style={{ display: 'grid', gap: '10px', paddingLeft: '15px', borderLeft: '2px solid #e5e7eb' }}>
+                                                {item.children.map((child, cidx) => (
+                                                    <Link key={cidx} to={child.to} onClick={() => setMobileMenuOpen(false)} style={{ color: '#4b5563', textDecoration: 'none', fontSize: '16px' }}>{child.label}</Link>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <Link to={item.to} onClick={() => setMobileMenuOpen(false)} style={{ fontWeight: 800, color: '#111827', textDecoration: 'none', fontSize: '18px' }}>{item.label}</Link>
+                                    )}
+                                </div>
+                            ))}
+                            {!user && (
+                                <div style={{ marginTop: '20px', display: 'grid', gap: '10px' }}>
+                                    <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="btn btn-light" style={{ width: '100%' }}>Sign in</Link>
+                                    <Link to="/register" onClick={() => setMobileMenuOpen(false)} className="btn btn-green" style={{ width: '100%', background: '#10B981' }}>Register</Link>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </header>
 
-            <Outlet />
+            <div style={{ paddingTop: '80px' }}>
+                <Outlet />
+                <DynamicFooter />
+            </div>
+        </div>
+    )
+}
 
-            <footer className="footer">
-                <div className="container footer-grid">
-                    <div>
-                        <h3>Scouting for Life</h3>
-                        <p>
-                            Public website for scouting stories, photos, shop items, letters,
-                            and community updates.
-                        </p>
-                    </div>
+/* SOCIAL WALL COMPONENT FOR HOMEPAGE WITH NATIVE WIDGETS AND SLIDESHOW FALLBACK */
+function TwitterEmbed({ url }) {
+    useEffect(() => {
+        const scriptId = 'twitter-wjs';
+        if (!document.getElementById(scriptId)) {
+            const script = document.createElement('script');
+            script.id = scriptId;
+            script.src = "https://platform.twitter.com/widgets.js";
+            script.async = true;
+            document.body.appendChild(script);
+        } else if (window.twttr && window.twttr.widgets) {
+            window.twttr.widgets.load();
+        }
+    }, [url]);
 
-                    <div>
-                        <h4>Explore</h4>
-                        <div className="footer-links">
-                            <Link to="/shop">Shop</Link>
-                            <Link to="/news">News</Link>
-                            <Link to="/letters">Letters</Link>
-                            <Link to="/photos">Photos</Link>
-                        </div>
-                    </div>
+    return (
+        <div style={{ height: 380, overflowY: 'auto', background: 'white' }}>
+            <a className="twitter-timeline" href={url} data-height="380">Tweets</a>
+        </div>
+    )
+}
 
-                    <div>
-                        <h4>Account</h4>
-                        <div className="footer-links">
-                            <Link to="/login">Login</Link>
-                            <Link to="/register">Register</Link>
-                        </div>
+function HomeSocialWall() {
+    const [accounts, setAccounts] = useState([])
+    const [postsByPlatform, setPostsByPlatform] = useState({})
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        fetch(`${API_URL}/api/social/feed`)
+            .then(r => r.json())
+            .then(data => {
+                setAccounts(Array.isArray(data?.accounts) ? data.accounts : [])
+                const grouped = {}
+                if (Array.isArray(data?.posts)) {
+                    data.posts.forEach(p => {
+                        if (!grouped[p.platform]) grouped[p.platform] = []
+                        if (grouped[p.platform].length < 2) grouped[p.platform].push(p)
+                    })
+                }
+                setPostsByPlatform(grouped)
+                setLoading(false)
+            })
+            .catch(() => setLoading(false))
+    }, [])
+
+    if (loading) return null
+    if (accounts.length === 0 && Object.keys(postsByPlatform).length === 0) return null
+
+    const widgets = []
+
+    // 1. Render Official Native Embed widgets for valid profiles
+    accounts.forEach(acc => {
+        if (!acc.isActive) return
+        
+        if (acc.platform === "Facebook" && acc.url.includes("facebook.com")) {
+            widgets.push(
+                <div key={`native-${acc.id}`} className="card social-widget-card" style={{ height: 420, overflow: "hidden", padding: 0 }}>
+                    <div style={{ background: "#1877f2", color: "white", padding: "12px 20px", fontWeight: 800, fontSize: 13, textTransform: 'uppercase' }}>Facebook Feed</div>
+                    <iframe title="FB Feed" src={`https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(acc.url)}&tabs=timeline&width=340&height=380&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=false`} width="100%" height="380" style={{border:"none",overflow:"hidden"}} scrolling="no" frameBorder="0" allowFullScreen={true} allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
+                </div>
+            )
+        } else if ((acc.platform === "Twitter (X)" || acc.platform === "X") && (acc.url.includes("twitter.com") || acc.url.includes("x.com"))) {
+            widgets.push(
+                <div key={`native-${acc.id}`} className="card social-widget-card" style={{ height: 420, overflow: "hidden", padding: 0 }}>
+                    <div style={{ background: "#000", color: "white", padding: "12px 20px", fontWeight: 800, fontSize: 13, textTransform: 'uppercase' }}>X (Twitter) Feed</div>
+                    <TwitterEmbed url={acc.url} />
+                </div>
+            )
+        }
+    })
+
+    // 2. Render Custom SlideShows for posts created manually in admin
+    Object.entries(postsByPlatform).forEach(([platform, posts]) => {
+        // Prevent duplicate panels if native widget is already showing for FB/Twitter
+        if (platform === "Facebook" && accounts.some(a => a.platform === "Facebook" && a.isActive)) return
+        if ((platform === "Twitter (X)" || platform === "X") && accounts.some(a => (a.platform.includes("X") || a.platform.includes("Twitter")) && a.isActive)) return
+        
+        widgets.push(
+            <div key={`manual-${platform}`} className="card social-widget-card" style={{ height: 420, overflow: "hidden", padding: 0, position: 'relative' }}>
+                <div style={{ background: "#00334e", color: "white", padding: "12px 20px", fontWeight: 800, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1 }}>
+                    {platform} Highlights
+                </div>
+                <SocialSlideShow posts={posts} />
+            </div>
+        )
+    })
+
+    if (widgets.length === 0) return null
+
+    return (
+        <section className="container section">
+            <div className="page-head">
+                <p className="eyebrow">Connect with Us</p>
+                <h2>Our Social Feeds</h2>
+                <p>Stay updated with our latest stories from across our platforms.</p>
+            </div>
+            
+            <div className="card-grid three">
+                {widgets}
+            </div>
+        </section>
+    )
+}
+
+function SocialSlideShow({ posts }) {
+    const [current, setCurrent] = useState(0)
+
+    useEffect(() => {
+        if (posts.length <= 1) return
+        const t = setInterval(() => {
+            setCurrent(s => (s + 1) % posts.length)
+        }, 6000)
+        return () => clearInterval(t)
+    }, [posts.length])
+
+    return (
+        <div style={{ position: "relative", height: "100%", overflow: "hidden" }}>
+            {posts.map((post, idx) => (
+                <div key={post.id} style={{ 
+                    position: "absolute", top: 0, left: 0, width: "100%", height: "100%", 
+                    opacity: idx === current ? 1 : 0, 
+                    transform: `translateX(${(idx - current) * 10}%)`,
+                    transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+                    padding: 24,
+                    display: "flex",
+                    flexDirection: "column"
+                }}>
+                    {post.imageUrl && (
+                        <img src={post.imageUrl} alt="" style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 8, marginBottom: 16 }} />
+                    )}
+                    <p style={{ fontSize: 14, lineHeight: 1.6, color: "#334155", flex: 1, overflow: "hidden" }}>{post.content}</p>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, paddingTop: 12, borderTop: '1px solid #f1f5f9' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>{new Date(post.postedAt).toLocaleDateString()}</span>
+                        <a href={post.postUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700, color: "#16a34a", textDecoration: "none" }}>View Post →</a>
                     </div>
                 </div>
-            </footer>
+            ))}
+            {posts.length > 1 && (
+                <div style={{ position: "absolute", bottom: 15, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 8 }}>
+                    {posts.map((_, i) => (
+                        <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: i === current ? "#16a34a" : "#cbd5e1", transition: "all 0.3s" }} />
+                    ))}
+                </div>
+            )}
         </div>
     )
 }
@@ -333,6 +552,7 @@ function HomePage() {
     const dynNews = (() => { try { return JSON.parse(s.newsItems || '[]') } catch { return newsItems } })()
     const dynLetters = (() => { try { return JSON.parse(s.letterItems || '[]') } catch { return letterItems } })()
     const dynGallery = (() => { try { return JSON.parse(s.galleryItems || '[]') } catch { return photoItems } })()
+    const activeQuickLinks = (() => { try { const q = JSON.parse(s.quickLinks || '[]'); return q.length > 0 ? q : defaultQuickLinks } catch { return defaultQuickLinks } })()
     const displayProducts = shopProducts.length > 0 ? shopProducts.slice(0, 4) : defaultProducts.slice(0, 4)
 
     const heroSlides = (() => {
@@ -351,66 +571,92 @@ function HomePage() {
 
     return (
         <>
-            <section className="hero">
-                {slideImages.map((src, idx) => (
-                    <div key={idx} className={`hero-slide ${idx === activeSlide ? 'active' : ''}`}>
-                        <img src={src} alt={`Slide ${idx + 1}`} />
+            <section className="hero-ecitizen" style={{ 
+                position: 'relative', 
+                height: '85vh', 
+                minHeight: '650px', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                justifyContent: 'flex-end',
+                overflow: 'hidden'
+            }}>
+                {/* Background Slideshow */}
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
+                    {slideImages.map((src, idx) => (
+                        <div key={idx} style={{ 
+                            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', 
+                            backgroundImage: `url(${src})`, backgroundSize: 'cover', backgroundPosition: 'center',
+                            opacity: idx === activeSlide ? 1 : 0, transition: 'opacity 1.5s ease-in-out'
+                        }} />
+                    ))}
+                    {/* Dark gradient overlay behind text to ensure readability regardless of image */}
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'linear-gradient(to right, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.1) 100%)' }} />
+                </div>
+
+                {/* Text Block - Over image before overlay */}
+                <div className="container" style={{ position: 'relative', zIndex: 10, marginBottom: '60px' }}>
+                    <div style={{ maxWidth: '800px', paddingLeft: '20px' }}>
+                        <h1 style={{ color: 'white', fontSize: 'clamp(32px, 4vw, 42px)', fontWeight: '800', lineHeight: '1.2', textShadow: '0 2px 10px rgba(0,0,0,0.5)', margin: 0 }}>
+                            {s.heroTitle || 'Flamingo Rover services simplified'}
+                        </h1>
+                        <p style={{ color: 'white', fontSize: 'clamp(20px, 2.5vw, 28px)', fontWeight: '700', margin: '10px 0 0', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+                            {s.heroSubtitle || 'All your scouting records unified'}
+                        </p>
                     </div>
-                ))}
-                <div className="hero-overlay" />
-                <div className="container hero-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 40, paddingTop: 120 }}>
-                    <div style={{ textAlign: 'center', width: '100%' }}>
-                        <p className="eyebrow light">{s.heroEyebrow || 'Flamingo Rover Scouts'}</p>
-                        <h1 style={{ maxWidth: 800, margin: '0 auto', fontSize: 'clamp(28px, 5vw, 52px)' }}>{s.heroTitle || 'Scouting services simplified'}</h1>
-                        <p style={{ color: 'rgba(255,255,255,0.85)', maxWidth: 600, margin: '12px auto 0', fontSize: 16 }}>{s.heroSubtitle || 'Educating young people to play a constructive role in society'}</p>
-                        <div style={{ maxWidth: 680, margin: '24px auto 0', display: 'flex', gap: 0, background: 'rgba(255,255,255,0.95)', borderRadius: 999, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
-                            <input placeholder="Search for scout activities, events, resources..." style={{ flex: 1, border: 'none', outline: 'none', padding: '14px 20px', fontSize: 15, background: 'transparent', color: '#0f172a' }} />
-                            <button style={{ background: '#62259D', color: 'white', border: 'none', padding: '14px 24px', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>Search</button>
+                </div>
+
+                {/* Dark Service Overlay */}
+                <div className="service-overlay-container" style={{ width: '100%', display: 'flex', justifyContent: 'center', padding: '0 20px', paddingBottom: '20px', position: 'relative', zIndex: 20 }}>
+                    <div style={{
+                        background: 'rgba(20, 30, 20, 0.75)',
+                        backdropFilter: 'blur(16px)',
+                        WebkitBackdropFilter: 'blur(16px)',
+                        borderRadius: '24px',
+                        padding: '40px',
+                        width: '100%',
+                        maxWidth: '1200px',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.3)'
+                    }}>
+                        {/* Search Bar */}
+                        <form 
+                            onSubmit={(e) => {
+                                e.preventDefault()
+                                const q = e.target.q.value
+                                if (!q) return
+                                window.location.href = `/search?q=${encodeURIComponent(q)}`
+                            }}
+                            style={{ background: 'white', borderRadius: '999px', display: 'flex', alignItems: 'center', padding: '10px 24px', marginBottom: '40px' }}
+                        >
+                            <svg 
+                                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" 
+                                style={{ marginRight: '12px', cursor: 'pointer' }}
+                                onClick={(e) => {
+                                    const formEl = e.currentTarget.closest('form');
+                                    formEl.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
+                                }}
+                            >
+                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                            <input 
+                                name="q"
+                                placeholder="Type name of service, event, records etc..." 
+                                style={{ flex: 1, border: 'none', outline: 'none', fontSize: '18px', background: 'transparent', padding: '8px 0', color: '#1f2937' }} 
+                            />
+                            <button type="submit" style={{ display: 'none' }}></button>
+                        </form>
+
+                        {/* Icon Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '20px', textAlign: 'center' }}>
+                            {activeQuickLinks.map((link) => (
+                                <Link key={link.id} to={link.url} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: 'white', textDecoration: 'none', gap: '12px', transition: 'transform 0.2s', cursor: 'pointer' }} onMouseOver={e=>e.currentTarget.style.transform='translateY(-5px)'} onMouseOut={e=>e.currentTarget.style.transform='translateY(0)'}>
+                                    {quickLinkIcons[link.icon] || quickLinkIcons['Link']}
+                                    <span style={{ fontSize: '14px', fontWeight: '600', lineHeight: '1.4', whiteSpace: 'pre-line' }}>{link.label}</span>
+                                </Link>
+                            ))}
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: 14, marginTop: 18 }}>
-                            <Link to="/register" className="btn" style={{ background: '#62259D', color: 'white', padding: '10px 24px' }}>Become a Member</Link>
-                        </div>
-                        {slideImages.length > 1 && (
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16 }}>
-                                {slideImages.map((_, idx) => (
-                                    <button key={idx} onClick={() => setActiveSlide(idx)} style={{ width: idx === activeSlide ? 28 : 10, height: 10, borderRadius: 5, border: 'none', background: idx === activeSlide ? 'white' : 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'all 0.3s' }} />
-                                ))}
-                            </div>
-                        )}
                     </div>
                 </div>
             </section>
-
-            <div className="quick-access-row">
-                <Link to="/shop" className="quick-access-item">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-                    Shop Gear
-                </Link>
-                <Link to="/news" className="quick-access-item">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-                    Latest News
-                </Link>
-                <Link to="/page/scout-movement" className="quick-access-item">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    Scout Movement
-                </Link>
-                <Link to="/page/scouting-education" className="quick-access-item">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 6 3 6 3s3 0 6-3v-5"/></svg>
-                    Scouting Education
-                </Link>
-                <Link to="/page/events-camps" className="quick-access-item">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                    Events & Camps
-                </Link>
-                <Link to="/letters" className="quick-access-item">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                    Letters
-                </Link>
-                <Link to="/photos" className="quick-access-item">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                    Photo Gallery
-                </Link>
-            </div>
 
 
             {/* Strategic Pillars — Who We Are */}
@@ -463,42 +709,8 @@ function HomePage() {
                 </div>
             </section>
 
-            {/* Get Involved */}
-            <section className="container section">
-                <div className="page-head">
-                    <p className="eyebrow">Get Involved</p>
-                    <h2>Join the Movement</h2>
-                    <p>There are many ways to be part of world scouting.</p>
-                </div>
-                <div className="card-grid three">
-                    {[
-                        { title: 'Join Scouting', text: 'Start your scouting journey and register as a member.', href: '/register' },
-                        { title: 'Events & Camps', text: 'Attend camps, jamborees, and community service events.', href: '/page/events-camps' },
-                        { title: 'Downloads', text: 'Access official documents, forms and resources.', href: '/downloads' },
-                        { title: 'Constitution', text: 'Read the scout constitution and governance documents.', href: '/constitution' },
-                        { title: 'Photo Gallery', text: 'Browse photos from events, activities and camps.', href: '/photos' },
-                        { title: 'Scouts for SDGs', text: 'Take action on the Sustainable Development Goals.', href: 'https://www.scout.org/what-we-do/global-action/scouts-sdgs' },
-                    ].map((w) => (
-                        w.href.startsWith('/') ? (
-                            <Link key={w.title} to={w.href} className="card admin-card-link" style={{ textDecoration: 'none' }}>
-                                <div className="card-body">
-                                    <h3>{w.title}</h3>
-                                    <p>{w.text}</p>
-                                    <span className="admin-link-text">Explore →</span>
-                                </div>
-                            </Link>
-                        ) : (
-                            <a key={w.title} href={w.href} target="_blank" rel="noopener noreferrer" className="card admin-card-link">
-                                <div className="card-body">
-                                    <h3>{w.title}</h3>
-                                    <p>{w.text}</p>
-                                    <span className="admin-link-text">Explore →</span>
-                                </div>
-                            </a>
-                        )
-                    ))}
-                </div>
-            </section>
+            {/* Home Social Wall — Displacing older widgets */}
+            <HomeSocialWall />
 
             {/* UN Sustainable Development Goals scroller */}
             <section className="container section">
@@ -535,18 +747,7 @@ function HomePage() {
                 </div>
             </section>
 
-            <section className="container section">
-                <div className="cta-box">
-                    <div>
-                        <p className="eyebrow">{s.ctaEyebrow || 'Admin Control'}</p>
-                        <h2>{s.ctaTitle || 'Separate admin side for managing the full website'}</h2>
-                        <p>{s.ctaText || 'Admins and leaders will use a separate dashboard for shop products, images, prices, letters, news, gallery uploads, and meeting notices.'}</p>
-                    </div>
-                    <Link to="/login" className="btn btn-dark btn-lg">
-                        Go to Login
-                    </Link>
-                </div>
-            </section>
+
         </>
     )
 }
@@ -609,6 +810,73 @@ const pageContent = {
     },
 }
 
+function SearchPage() {
+    const query = new URLSearchParams(window.location.search).get('q') || ''
+    const safeQuery = query.toLowerCase().trim()
+    
+    const results = []
+    
+    if (safeQuery) {
+        Object.entries(pageContent).forEach(([slug, content]) => {
+            if (content.title.toLowerCase().includes(safeQuery) || content.body.toLowerCase().includes(safeQuery)) {
+                results.push({
+                    title: content.title,
+                    type: content.eyebrow || 'Page',
+                    url: `/page/${slug}`,
+                    snippet: content.body.substring(0, 150) + '...'
+                })
+            }
+        })
+        
+        const statics = [
+            { title: 'Shop Gear', type: 'Shop', url: '/shop', match: 'shop gear store buy scarf woggle uniform badge' },
+            { title: 'News', type: 'Updates', url: '/news', match: 'news updates articles announcements' },
+            { title: 'Letters', type: 'Documents', url: '/letters', match: 'letters official documents' },
+            { title: 'Photos', type: 'Gallery', url: '/photos', match: 'photos gallery images pictures' },
+            { title: 'Downloads', type: 'Resources', url: '/downloads', match: 'downloads forms resources pdf' },
+            { title: 'Constitution', type: 'Rules', url: '/constitution', match: 'constitution rules bylaws' },
+        ]
+        
+        statics.forEach(s => {
+            if (s.title.toLowerCase().includes(safeQuery) || s.match.includes(safeQuery)) {
+                results.push({ title: s.title, type: s.type, url: s.url, snippet: `View our ${s.title.toLowerCase()} section.` })
+            }
+        })
+    }
+
+    return (
+        <section className="container page-section" style={{ minHeight: '60vh' }}>
+            <div className="page-head left">
+                <p className="eyebrow">Search Results</p>
+                <h1 style={{ marginTop: 0 }}>Showing results for: "{query}"</h1>
+            </div>
+            
+            <form action="/search" method="get" style={{ display: 'flex', gap: 10, maxWidth: 600, marginBottom: 40, marginTop: 24 }}>
+                <input name="q" defaultValue={query} placeholder="Search again..." style={{ flex: 1, padding: '12px 20px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 16 }} />
+                <button type="submit" className="btn btn-green">Search</button>
+            </form>
+
+            <div style={{ display: 'grid', gap: 20 }}>
+                {query ? (
+                    results.length > 0 ? (
+                        results.map((r, i) => (
+                            <div key={i} className="card" style={{ padding: 24, paddingBottom: 24 }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', marginBottom: 6 }}>{r.type}</div>
+                                <h2><Link to={r.url} style={{ color: '#1e293b', textDecoration: 'none' }}>{r.title}</Link></h2>
+                                <p style={{ color: '#475569', marginTop: 10, fontSize: 15 }}>{r.snippet}</p>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="panel"><p>No results found for "{query}". Try a different term.</p></div>
+                    )
+                ) : (
+                    <div className="panel"><p>Enter a search term above to find what you're looking for.</p></div>
+                )}
+            </div>
+        </section>
+    )
+}
+
 function ContentPage() {
     const { slug } = useParams()
     const [page, setPage] = useState(null)
@@ -629,13 +897,19 @@ function ContentPage() {
         try {
             const r = await fetch(`${API_URL}/api/pages/${slug}`)
             if (r.ok) {
-                const data = await r.json()
-                setPage({ ...fallback, ...data }) // Merging ensures we have standard structure
-                setForm({ title: data.title, eyebrow: data.eyebrow || '', body: data.body })
-            } else {
-                setPage(fallback)
-                if (fallback) setForm({ title: fallback.title, eyebrow: fallback.eyebrow || '', body: fallback.body })
+                const text = await r.text()
+                try {
+                    const data = JSON.parse(text)
+                    if (data) {
+                        setPage({ ...fallback, ...data }) 
+                        setForm({ title: data.title, eyebrow: data.eyebrow || '', body: data.body })
+                        return
+                    }
+                } catch(e) {}
             }
+            // Fallback for not found or bad json
+            setPage(fallback)
+            if (fallback) setForm({ title: fallback.title, eyebrow: fallback.eyebrow || '', body: fallback.body })
         } catch (err) {
             setPage(fallback)
             if (fallback) setForm({ title: fallback.title, eyebrow: fallback.eyebrow || '', body: fallback.body })
@@ -1239,79 +1513,154 @@ function RegisterPage() {
 }
 
 function AdminLayout({ user, onLogout }) {
+    const navigate = useNavigate()
+    const [collapsed, setCollapsed] = useState(false)
+    const [showUserMenu, setShowUserMenu] = useState(false)
+    const [showNotifications, setShowNotifications] = useState(false)
+    const [stats, setStats] = useState({ pending: 0 })
+
+    useEffect(() => {
+        const token = localStorage.getItem('flamingo_token')
+        fetch(`${API_URL}/api/stats`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.json())
+            .then(data => setStats(data))
+            .catch(() => {})
+    }, [])
+
     return (
         <div className="admin-shell">
-            <aside className="admin-sidebar">
-                <div className="admin-brand">
-                    <div className="brand-mark">F</div>
-                    <div>
-                        <div className="brand-title">Flamingo Admin</div>
-                        <div className="brand-subtitle">Manage the website</div>
-                    </div>
-                </div>
-
-                <div className="admin-userbox">
-                    <strong>{user?.fullName}</strong>
-                    <span>{user?.role}</span>
+            <aside className={`admin-sidebar ${collapsed ? 'collapsed' : ''}`}>
+                <div className="admin-sidebar-brand-active">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                    <span className="sidebar-label">Admin Dashboard</span>
                 </div>
 
                 <nav className="admin-nav">
                     <NavLink to="/admin/dashboard" className={({ isActive }) => adminNavClass(isActive)}>
-                        Dashboard
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                        <span className="sidebar-label">Main View</span>
                     </NavLink>
                     <NavLink to="/admin/shop" className={({ isActive }) => adminNavClass(isActive)}>
-                        Shop Manager
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                        <span className="sidebar-label">Shop Manager</span>
                     </NavLink>
                     <NavLink to="/admin/news" className={({ isActive }) => adminNavClass(isActive)}>
-                        News Manager
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                        <span className="sidebar-label">News & Blogs</span>
                     </NavLink>
                     <NavLink to="/admin/letters" className={({ isActive }) => adminNavClass(isActive)}>
-                        Letters Manager
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                        <span className="sidebar-label">Letters</span>
                     </NavLink>
                     <NavLink to="/admin/photos" className={({ isActive }) => adminNavClass(isActive)}>
-                        Gallery Manager
-                    </NavLink>
-                    <NavLink to="/admin/notices" className={({ isActive }) => adminNavClass(isActive)}>
-                        Meeting Notices
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                        <span className="sidebar-label">Gallery Manager</span>
                     </NavLink>
                     <NavLink to="/admin/homepage-editor" className={({ isActive }) => adminNavClass(isActive)}>
-                        Homepage Editor
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                        <span className="sidebar-label">Home Editor</span>
                     </NavLink>
                     <NavLink to="/admin/downloads" className={({ isActive }) => adminNavClass(isActive)}>
-                        Downloads Manager
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span className="sidebar-label">Downloads</span>
                     </NavLink>
-                    <NavLink to="/admin/constitution" className={({ isActive }) => adminNavClass(isActive)}>
-                        Constitution Manager
+                    <NavLink to="/admin/users" className={({ isActive }) => adminNavClass(isActive)}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        <span className="sidebar-label">Users List</span>
                     </NavLink>
-                    <NavLink to="/admin/audit-logs" className={({ isActive }) => adminNavClass(isActive)}>
-                        Audit Logs
+                    <NavLink to="/admin/links" className={({ isActive }) => adminNavClass(isActive)}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                        <span className="sidebar-label">Link Manager</span>
                     </NavLink>
-                    {user?.role === 'superadmin' && (
-                        <NavLink to="/admin/users" className={({ isActive }) => adminNavClass(isActive) + ' superadmin-link'}>
-                            Manage Users
-                        </NavLink>
-                    )}
+                    <NavLink to="/admin/social" className={({ isActive }) => adminNavClass(isActive)}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+                        <span className="sidebar-label">Social Media</span>
+                    </NavLink>
                 </nav>
 
-                <div className="admin-actions">
-                    <Link to="/" className="btn btn-light btn-full">
-                        Public Website
-                    </Link>
-                    <button className="btn btn-dark btn-full" onClick={onLogout}>
-                        Logout
-                    </button>
+                <div style={{ padding: '0 16px 24px', fontSize: 10, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
+                    {!collapsed && "©2026 - lance media"}
                 </div>
             </aside>
 
-            <main className="admin-main">
-                <Outlet />
-            </main>
+            <div className="admin-content-shell">
+                <header className="admin-topbar">
+                    <div className="admin-topbar-left">
+                        <div className="admin-toggle-btn" onClick={() => setCollapsed(!collapsed)}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        </div>
+                        <img 
+                            src="/images/logo.jpeg" 
+                            alt="Flamingo Rovers" 
+                            style={{ height: 50, width: 50, objectFit: 'contain', cursor: 'pointer' }} 
+                            onClick={() => navigate('/')}
+                        />
+                        <span className="admin-university-name">Flamingo Rovers</span>
+                    </div>
+
+                    <div className="admin-topbar-right">
+                        <div className="relative-dropdown">
+                            <div className="admin-top-action" onClick={() => setShowNotifications(!showNotifications)}>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                                {stats?.pending > 0 && <span className="admin-notification-badge"></span>}
+                            </div>
+                            {showNotifications && (
+                                <div className="dropdown-pop" style={{ width: 280 }}>
+                                    <div style={{ padding: 12, borderBottom: '1px solid #f1f5f9', fontWeight: 800 }}>Notifications</div>
+                                    <div style={{ padding: 12 }}>
+                                        {stats?.pending > 0 ? (
+                                            <Link to="/admin/users" onClick={() => setShowNotifications(false)} style={{ display: 'flex', gap: 12 }}>
+                                                <div style={{ background: '#f0fdf4', width: 40, height: 40, borderRadius: 8, display: 'grid', placeItems: 'center' }}>🎉</div>
+                                                <div>
+                                                    <div style={{ fontSize: 13, fontWeight: 700 }}>{stats.pending} New Registrations</div>
+                                                    <div style={{ fontSize: 11, color: '#64748b' }}>Members awaiting approval</div>
+                                                </div>
+                                            </Link>
+                                        ) : (
+                                            <div style={{ textAlign: 'center', color: '#94a3b8', padding: '20px 0', fontSize: 13 }}>No new notifications</div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="relative-dropdown">
+                            <div className="admin-user-profile" onClick={() => setShowUserMenu(!showUserMenu)}>
+                                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#f1f5f9', display: 'grid', placeItems: 'center', fontWeight: 800, color: '#1B5E20' }}>
+                                    {user?.fullName?.charAt(0) || 'A'}
+                                </div>
+                                <span style={{ fontWeight: 700, color: '#334155' }}>Hi, {user?.fullName?.split(' ')[0] || 'Admin'}</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </div>
+                            
+                            {showUserMenu && (
+                                <div className="dropdown-pop">
+                                    <div style={{ padding: 12, borderBottom: '1px solid #f1f5f9' }}>
+                                        <div style={{ fontWeight: 800 }}>{user?.fullName}</div>
+                                        <div style={{ fontSize: 12, color: '#64748b' }}>{user?.email}</div>
+                                    </div>
+                                    <div style={{ padding: 4 }}>
+                                        <button onClick={onLogout} style={{ width: '100%', padding: '10px 12px', textAlign: 'left', border: 'none', background: 'none', color: '#ef4444', fontWeight: 700, fontSize: 14, borderRadius: 8, cursor: 'pointer' }} className="hover:bg-red-50">
+                                            Logout from Panel
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </header>
+
+                <main className="admin-main">
+                    <Outlet />
+                </main>
+            </div>
         </div>
     )
 }
 
 function AdminDashboard({ isSuperAdmin, user, token }) {
     const [stats, setStats] = useState(null)
+    const navigate = useNavigate()
 
     useEffect(() => {
         fetch(`${API_URL}/api/stats`, { headers: { Authorization: `Bearer ${token}` } })
@@ -1320,61 +1669,82 @@ function AdminDashboard({ isSuperAdmin, user, token }) {
             .catch(() => {})
     }, [token])
 
-    const statItems = stats ? [
-        { label: 'Total Users', value: stats.totalUsers, color: '#2E7D32' },
-        { label: 'Admins', value: stats.admins, color: '#1B5E20' },
-        { label: 'Members', value: stats.members, color: '#388E3C' },
-        { label: 'Active', value: stats.approved, color: '#FFB300' },
-        { label: 'Pending', value: stats.pending, color: '#E65100' },
-    ] : []
-
     return (
         <section>
-            <div className="page-head left">
-                <p className="eyebrow">Admin Panel</p>
-                <h1>Dashboard</h1>
-                <p>Welcome back, {user?.fullName}. Here is your system overview.</p>
+            <div className="welcome-card">
+                <div className="welcome-copy">
+                    <p style={{ color: '#1B5E20', fontWeight: 800, textTransform: 'uppercase', fontSize: 13, letterSpacing: 0.5, marginBottom: 8 }}>Scout Admin</p>
+                    <h1>Welcome, {user?.fullName?.split(' ')[0] || 'Admin'}</h1>
+                    <p>Flamingo Rovers Scout Group Portal. Manage your shop, members, and resources from this central hub.</p>
+                </div>
+                <div className="welcome-illustration">
+                    <img src="/images/logo.jpeg" alt="Logo" style={{ width: 120, height: 120, objectFit: 'contain' }} />
+                </div>
             </div>
 
-            {stats && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginBottom: 28 }}>
-                    {statItems.map((s) => (
-                        <div key={s.label} style={{ background: 'white', borderRadius: 12, padding: '20px 18px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', borderLeft: `4px solid ${s.color}` }}>
-                            <div style={{ fontSize: 28, fontWeight: 800, color: s.color }}>{s.value}</div>
-                            <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600, marginTop: 4 }}>{s.label}</div>
+            <div className="dashboard-grid">
+                <div className="main-stats-area">
+                    <div style={{ background: 'white', borderRadius: 16, padding: 32, border: '1px solid #f1f5f9' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                            <h2 style={{ fontSize: 18, color: '#1B5E20', margin: 0 }}>Membership Status</h2>
+                            <span onClick={() => navigate('/admin/users')} style={{ color: '#2E7D32', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>View All</span>
                         </div>
-                    ))}
-                </div>
-            )}
-
-            {isSuperAdmin && (
-                <div style={{ background: 'linear-gradient(135deg, #1B5E20, #4CAF50)', borderRadius: 12, padding: '16px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ color: 'white' }}>
-                        <strong style={{ display: 'block', fontSize: 15 }}>Super Admin Mode</strong>
-                        <span style={{ fontSize: 13, opacity: 0.85 }}>Full access — approve users, assign roles, manage everything.</span>
-                    </div>
-                    <Link to="/admin/users" className="btn" style={{ marginLeft: 'auto', background: 'white', color: '#1B5E20', fontWeight: 600 }}>Manage Users</Link>
-                </div>
-            )}
-
-            {stats && stats.recentLogs && stats.recentLogs.length > 0 && (
-                <div className="panel panel-lg">
-                    <h2 style={{ marginBottom: 14 }}>Recent Activity</h2>
-                    <div style={{ maxHeight: 400, overflowY: 'auto' }}>
-                        {stats.recentLogs.map((log) => (
-                            <div key={log.id} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: '1px solid #f1f5f9', fontSize: 13 }}>
-                                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e8f5e9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2E7D32', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
-                                    {log.user?.fullName?.charAt(0) || '?'}
-                                </div>
-                                <div>
-                                    <div><strong>{log.user?.fullName}</strong> · <span style={{ color: '#64748b' }}>{log.action}</span></div>
-                                    <div style={{ color: '#94a3b8', fontSize: 11 }}>{new Date(log.createdAt).toLocaleString()}</div>
-                                </div>
-                            </div>
-                        ))}
+                        
+                        {stats ? (
+                             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr style={{ borderBottom: '1px solid #f1f5f9', textAlign: 'left' }}>
+                                        <th style={{ padding: '12px 0', fontSize: 13, color: '#94a3b8' }}>Unit Type</th>
+                                        <th style={{ padding: '12px 0', fontSize: 13, color: '#94a3b8' }}>Count</th>
+                                        <th style={{ padding: '12px 0', fontSize: 13, color: '#94a3b8' }}>Badge</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style={{ padding: '16px 0', fontWeight: 600 }}>Total Rovers</td>
+                                        <td style={{ padding: '16px 0' }}>{stats.members}</td>
+                                        <td style={{ padding: '16px 0' }}><span style={{ color: '#16a34a', background: '#f0fdf4', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 700 }}>Scout</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td style={{ padding: '16px 0', fontWeight: 600 }}>Administrative Staff</td>
+                                        <td style={{ padding: '16px 0' }}>{stats.admins}</td>
+                                        <td style={{ padding: '16px 0' }}><span style={{ color: '#ca8a04', background: '#fefce8', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 700 }}>Leader</span></td>
+                                    </tr>
+                                </tbody>
+                             </table>
+                        ) : <p>Loading stats...</p>}
                     </div>
                 </div>
-            )}
+
+                <div className="side-cards-area">
+                    <div className="stat-card-blue" style={{ marginBottom: 24 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                             <div style={{ background: 'rgba(255,255,255,0.2)', width: 50, height: 50, borderRadius: '50%', display: 'grid', placeItems: 'center' }}>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                             </div>
+                             <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: 20, fontWeight: 800 }}>Users Summary</div>
+                                <div style={{ fontSize: 13, opacity: 0.8 }}>Total registered members</div>
+                             </div>
+                        </div>
+                        <div style={{ marginTop: 24 }}>
+                             <div style={{ fontSize: 32, fontWeight: 800 }}>{stats?.totalUsers || 0}</div>
+                             <div style={{ fontSize: 14, opacity: 0.9, marginTop: 4 }}>Active Database Records</div>
+                        </div>
+                        <button onClick={() => navigate('/admin/users')} style={{ marginTop: 20, width: '100%', padding: '12px', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: 12, fontWeight: 700, cursor: 'pointer' }}>View Details</button>
+                    </div>
+
+                    <div className="stat-card-purple">
+                        <div style={{ marginBottom: 12, fontSize: 13, fontWeight: 700, opacity: 0.9 }}>KENYA SCOUTS PRIDE</div>
+                        <div style={{ fontSize: 15, fontWeight: 600 }}>System Integrity</div>
+                        <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>Site Uptime & Logs</div>
+                        <div style={{ marginTop: 20, height: 10, background: 'rgba(255,255,255,0.1)', borderRadius: 5, position: 'relative' }}>
+                             <div style={{ position: 'absolute', inset: 0, width: '92%', background: 'white', opacity: 0.9, borderRadius: 5 }}></div>
+                        </div>
+                        <div style={{ marginTop: 10, textAlign: 'right', fontSize: 12, fontWeight: 700 }}>92% Healthy</div>
+                    </div>
+                </div>
+            </div>
         </section>
     )
 }
@@ -2115,10 +2485,12 @@ function AdminHomepageEditor({ token }) {
     ])
     const [images, setImages] = useState({})
     const [heroSlides, setHeroSlides] = useState([])
+    const [quickLinks, setQuickLinks] = useState(defaultQuickLinks)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [msg, setMsg] = useState('')
     const [uploadMsg, setUploadMsg] = useState('')
+    const isSuperAdmin = getStoredUser()?.role === 'superadmin'
 
     useEffect(() => {
         fetch(`${API_URL}/api/settings`, { headers: { Authorization: `Bearer ${token}` } })
@@ -2135,6 +2507,7 @@ function AdminHomepageEditor({ token }) {
                 try { const l = JSON.parse(data.letterItems); if (Array.isArray(l) && l.length) setLetterCards(l) } catch {}
                 try { const g = JSON.parse(data.galleryItems); if (Array.isArray(g) && g.length) setGalleryCards(g) } catch {}
                 try { const sl = JSON.parse(data.heroSlides); if (Array.isArray(sl)) setHeroSlides(sl) } catch {}
+                try { const ql = JSON.parse(data.quickLinks); if (Array.isArray(ql) && ql.length > 0) setQuickLinks(ql) } catch {}
                 const imgKeys = ['heroImage', 'siteLogo', 'newsImage1', 'newsImage2', 'newsImage3', 'galleryImage1', 'galleryImage2', 'galleryImage3', 'galleryImage4']
                 const imgs = {}
                 for (const k of imgKeys) { if (data[k]) imgs[k] = data[k] }
@@ -2161,6 +2534,7 @@ function AdminHomepageEditor({ token }) {
                 letterItems: JSON.stringify(letterCards),
                 galleryItems: JSON.stringify(galleryCards),
                 heroSlides: JSON.stringify(heroSlides),
+                quickLinks: JSON.stringify(quickLinks),
             }
             const res = await fetch(`${API_URL}/api/settings`, {
                 method: 'PUT',
@@ -2225,11 +2599,6 @@ function AdminHomepageEditor({ token }) {
             {uploadMsg && <div className="success-box" style={{ marginBottom: 16 }}>{uploadMsg}</div>}
 
             <form onSubmit={handleSave}>
-                <div style={gs}>
-                    <h3 style={{ marginBottom: 14, color: '#2E7D32' }}>Site Logo</h3>
-                    <p style={{ fontSize: 13, color: '#64748b', marginBottom: 10 }}>Upload your Flamingo logo to replace the default "F" mark in the header.</p>
-                    <Img label="Site Logo" settingKey="siteLogo" />
-                </div>
 
                 <div style={gs}>
                     <h3 style={{ marginBottom: 14, color: '#2E7D32' }}>Hero Banner</h3>
@@ -2257,6 +2626,40 @@ function AdminHomepageEditor({ token }) {
                     <label style={{ ...ls, marginTop: 14 }}>Eyebrow Text<input name="heroEyebrow" value={form.heroEyebrow} onChange={handleChange} style={fs} /></label>
                     <label style={ls}>Main Title<input name="heroTitle" value={form.heroTitle} onChange={handleChange} style={fs} /></label>
                     <label style={ls}>Subtitle / Tagline<input name="heroSubtitle" value={form.heroSubtitle} onChange={handleChange} style={fs} placeholder="e.g. Educating young people to play a constructive role in society" /></label>
+                </div>
+
+                <div style={gs}>
+                    <h3 style={{ marginBottom: 14, color: '#2E7D32' }}>Quick Access Links (Hero)</h3>
+                    <p style={{ fontSize: 13, color: '#64748b', marginBottom: 14 }}>Manage the 8 shortcut links displayed inside the dark overlay on the homepage hero section.</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 16 }}>
+                        {quickLinks.map((link, idx) => (
+                            <div key={link.id || idx} style={{ ...cardBox, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontWeight: 600, fontSize: 14, color: '#334155' }}>Shortcut #{idx + 1}</span>
+                                    {isSuperAdmin && <button type="button" onClick={() => setQuickLinks(prev => prev.filter((_, i) => i !== idx))} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '4px 8px', borderRadius: 4, fontSize: 11, cursor: 'pointer' }}>Remove</button>}
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Label (use \n for line break)</label>
+                                    <input value={link.label} onChange={e => updateCard(setQuickLinks, idx, 'label', e.target.value)} style={{ ...fs, marginTop: 0 }} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>URL Path / Link</label>
+                                    <input value={link.url} onChange={e => updateCard(setQuickLinks, idx, 'url', e.target.value)} style={{ ...fs, marginTop: 0 }} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Icon</label>
+                                    <select value={link.icon} onChange={e => updateCard(setQuickLinks, idx, 'icon', e.target.value)} style={{ ...fs, marginTop: 0, padding: '10px 14px' }}>
+                                        {Object.keys(quickLinkIcons).map(iconName => (
+                                            <option key={iconName} value={iconName}>{iconName}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    {isSuperAdmin && (
+                        <button type="button" onClick={() => setQuickLinks(prev => [...prev, { id: Date.now(), label: 'New Link', url: '/', icon: 'Link' }])} style={{ marginTop: 16, background: '#10b981', color: 'white', padding: '8px 16px', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>+ Add Shortcut Link</button>
+                    )}
                 </div>
 
                 <div style={gs}>
@@ -2306,13 +2709,6 @@ function AdminHomepageEditor({ token }) {
                             <label style={ls}>Title<input value={card.title} onChange={(e) => updateCard(setGalleryCards, i, 'title', e.target.value)} style={fs} /></label>
                         </div>
                     ))}
-                </div>
-
-                <div style={gs}>
-                    <h3 style={{ marginBottom: 14, color: '#2E7D32' }}>Call-to-Action Box</h3>
-                    <label style={ls}>Eyebrow<input name="ctaEyebrow" value={form.ctaEyebrow} onChange={handleChange} style={fs} /></label>
-                    <label style={ls}>Heading<input name="ctaTitle" value={form.ctaTitle} onChange={handleChange} style={fs} /></label>
-                    <label style={ls}>Description<textarea name="ctaText" value={form.ctaText} onChange={handleChange} rows={3} style={fs} /></label>
                 </div>
 
                 {msg && <div className="success-box" style={{ marginBottom: 16 }}>{msg}</div>}
@@ -2462,4 +2858,466 @@ function AdminDownloadsManager({ token }) {
 
 function AdminConstitutionManager({ token }) {
     return <AdminDocumentManager token={token} category="constitution" title="Constitution Manager" />
-}
+}
+
+function SocialFeedWidget() {
+    const [posts, setPosts] = useState([])
+    const [index, setIndex] = useState(0)
+
+    useEffect(() => {
+        fetch(`${API_URL}/api/social/feed`)
+            .then(r => r.json())
+            .then(data => setPosts(Array.isArray(data?.posts) ? data.posts : []))
+            .catch(() => {})
+    }, [])
+
+    useEffect(() => {
+        if (posts.length <= 1) return
+        const iv = setInterval(() => {
+            setIndex(i => (i + 1) % posts.length)
+        }, 5000)
+        return () => clearInterval(iv)
+    }, [posts.length])
+
+    if (posts.length === 0) return null
+
+    const p = posts[index]
+
+    return (
+        <div className="social-feed-widget" style={{ minHeight: '180px', position: 'relative' }}>
+            <h4 style={{ marginBottom: '15px' }}>Latest from Social Media</h4>
+            
+            <div 
+                className="social-post-card" 
+                key={p.id}
+                style={{ 
+                    animation: 'fadeIn 0.5s ease-out',
+                    background: 'rgba(255,255,255,0.05)',
+                    padding: '16px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                }}
+            >
+                <div className="social-post-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <span className="platform-tag" style={{ background: '#16a34a', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 800 }}>{p.platform}</span>
+                    <span className="post-date" style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{new Date(p.postedAt).toLocaleDateString()}</span>
+                </div>
+                <p style={{ margin: '0 0 12px 0', fontSize: '14px', lineHeight: 1.5, color: 'rgba(255,255,255,0.9)', height: '3em', overflow: 'hidden' }}>{p.content}</p>
+                {p.postUrl && (
+                    <a href={p.postUrl} target="_blank" rel="noreferrer" className="view-original" style={{ color: '#16a34a', textDecoration: 'none', fontSize: '13px', fontWeight: 700 }}>
+                        View on {p.platform} →
+                    </a>
+                )}
+            </div>
+
+            {posts.length > 1 && (
+                <div style={{ display: 'flex', gap: '6px', marginTop: '12px', justifyContent: 'center' }}>
+                    {posts.map((_, i) => (
+                        <div key={i} onClick={() => setIndex(i)} style={{ width: '8px', height: '8px', borderRadius: '50%', background: i === index ? '#16a34a' : 'rgba(255,255,255,0.2)', cursor: 'pointer' }} />
+                    ))}
+                </div>
+            )}
+        </div>
+    )
+}
+
+function DynamicFooter() {
+    const [columns, setColumns] = useState({ 1: [], 2: [], 3: [], 4: [] })
+    const [accounts, setAccounts] = useState([])
+
+    useEffect(() => {
+        fetch(`${API_URL}/api/links`)
+            .then(async r => {
+                if (!r.ok) return []
+                const text = await r.text()
+                try { return JSON.parse(text) } catch (e) { return [] }
+            })
+            .then(data => {
+                const cols = { 1: [], 2: [], 3: [], 4: [] }
+                if (Array.isArray(data)) {
+                    data.forEach(l => { if (cols[l.column]) cols[l.column].push(l) })
+                }
+                setColumns(cols)
+            })
+            .catch(() => {})
+
+        fetch(`${API_URL}/api/social/feed`)
+            .then(async r => {
+                if (!r.ok) return { accounts: [] }
+                const text = await r.text()
+                try { return JSON.parse(text) } catch (e) { return { accounts: [] } }
+            })
+            .then(data => setAccounts(Array.isArray(data?.accounts) ? data.accounts.filter(a => a.isActive) : []))
+            .catch(() => {})
+    }, [])
+
+    return (
+        <footer className="main-footer">
+            <div className="container footer-content">
+                <div className="footer-grid">
+                    <div className="footer-brand-col">
+                        <img src="/images/logo.jpeg" alt="Flamingo Rovers" style={{ height: 60, marginBottom: 16, objectFit: 'contain' }} />
+                        <h3>Flamingo Rover Scouts</h3>
+                        <p>Educating young people to play a constructive role in society through a value system based on the Scout Promise and Law.</p>
+                        <div className="footer-social-links" style={{ marginTop: '20px' }}>
+                            <DynamicSocialStrip color="white" />
+                        </div>
+                    </div>
+
+                    <div className="footer-links-col">
+                        <h4>About Us</h4>
+                        <div className="footer-links-list">
+                            {columns[1].map(l => <a key={l.id} href={l.url} style={{ display: 'block', color: 'rgba(255,255,255,0.7)', textDecoration: 'none', marginBottom: 8, fontSize: 14 }}>{l.title}</a>)}
+                            {columns[1].length === 0 && <><Link to="/page/about-us" style={{ display: 'block', color: 'rgba(255,255,255,0.7)', textDecoration: 'none', marginBottom: 8, fontSize: 14 }}>About Us</Link><Link to="/page/scout-method" style={{ display: 'block', color: 'rgba(255,255,255,0.7)', textDecoration: 'none', marginBottom: 8, fontSize: 14 }}>Scout Method</Link></>}
+                        </div>
+                    </div>
+
+                    <div className="footer-links-col">
+                        <h4>Quick Links</h4>
+                        <div className="footer-links-list">
+                            {columns[2].map(l => <a key={l.id} href={l.url} style={{ display: 'block', color: 'rgba(255,255,255,0.7)', textDecoration: 'none', marginBottom: 8, fontSize: 14 }}>{l.title}</a>)}
+                            {columns[2].length === 0 && <><Link to="/shop" style={{ display: 'block', color: 'rgba(255,255,255,0.7)', textDecoration: 'none', marginBottom: 8, fontSize: 14 }}>Shop</Link><Link to="/news" style={{ display: 'block', color: 'rgba(255,255,255,0.7)', textDecoration: 'none', marginBottom: 8, fontSize: 14 }}>News</Link></>}
+                        </div>
+                    </div>
+
+                    <div className="footer-widget-col">
+                        <SocialFeedWidget />
+                    </div>
+                </div>
+                <div className="footer-bottom" style={{ marginTop: 40, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 20, textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
+                    <p>© 2026 Flamingo Rover Scouts. Powered by ABNO Softwares International. | <Link to="/login" style={{ color: 'white' }}>Portal Access</Link></p>
+                </div>
+            </div>
+        </footer>
+    )
+}
+function AdminLinkManager({ token }) {
+    const [links, setLinks] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [form, setForm] = useState({ title: "", url: "", column: 2, order: 0 })
+    const [editingId, setEditingId] = useState(null)
+
+    const fetchLinks = useCallback(async () => {
+        try {
+            const r = await fetch(`${API_URL}/api/links/admin`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            })
+            const data = await r.json()
+            setLinks(Array.isArray(data) ? data : [])
+            setLoading(false)
+        } catch (err) { console.error(err); setLoading(false) }
+    }, [token])
+
+    useEffect(() => { fetchLinks() }, [fetchLinks])
+
+    async function handleSubmit(e) {
+        e.preventDefault()
+        const method = editingId ? "PUT" : "POST"
+        const url = editingId ? `${API_URL}/api/links/${editingId}` : `${API_URL}/api/links`
+        
+        try {
+            const r = await fetch(url, {
+                method,
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify(form)
+            })
+            if (r.ok) {
+                setForm({ title: "", url: "", column: 2, order: 0 })
+                setEditingId(null)
+                fetchLinks()
+            }
+        } catch (err) { console.error(err) }
+    }
+
+    async function handleDelete(id) {
+        if (!confirm("Delete this link?")) return
+        try {
+            await fetch(`${API_URL}/api/links/${id}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${token}` }
+            })
+            fetchLinks()
+        } catch (err) { console.error(err) }
+    }
+
+    return (
+        <div style={{ padding: 24 }}>
+            <h2 style={{ color: "#1B5E20", marginBottom: 24 }}>Manage Footer Links</h2>
+            <div className="panel" style={{ marginBottom: 24 }}>
+                <h3 style={{ marginTop: 0 }}>{editingId ? "Edit Link" : "Add New Link"}</h3>
+                <form onSubmit={handleSubmit} style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr 1.5fr 0.8fr 0.5fr auto", alignItems: "end" }}>
+                    <div>
+                        <label style={{ fontSize: 13, fontWeight: 700 }}>Label</label>
+                        <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #ddd" }} required />
+                    </div>
+                    <div>
+                        <label style={{ fontSize: 13, fontWeight: 700 }}>URL</label>
+                        <input value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #ddd" }} required />
+                    </div>
+                    <div>
+                        <label style={{ fontSize: 13, fontWeight: 700 }}>Column</label>
+                        <select value={form.column} onChange={e => setForm({ ...form, column: e.target.value })} style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #ddd" }}>
+                            <option value={1}>Column 1 (About)</option>
+                            <option value={2}>Column 2 (Quick Links)</option>
+                            <option value={3}>Column 3 (Useful Links)</option>
+                            <option value={4}>Column 4 (Opportunities)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style={{ fontSize: 13, fontWeight: 700 }}>Order</label>
+                        <input type="number" value={form.order} onChange={e => setForm({ ...form, order: e.target.value })} style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #ddd" }} />
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                        <button type="submit" className="btn btn-green">{editingId ? "Update" : "Add Link"}</button>
+                        {editingId && <button type="button" className="btn btn-light" onClick={() => { setEditingId(null); setForm({ title: "", url: "", column: 2, order: 0 }) }}>Cancel</button>}
+                    </div>
+                </form>
+            </div>
+
+            <div className="panel">
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                        <tr style={{ textAlign: "left", borderBottom: "2px solid #eee" }}>
+                            <th style={{ padding: 12 }}>Title</th>
+                            <th style={{ padding: 12 }}>URL</th>
+                            <th style={{ padding: 12 }}>Column</th>
+                            <th style={{ padding: 12 }}>Order</th>
+                            <th style={{ padding: 12 }}>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {links.map(l => (
+                            <tr key={l.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
+                                <td style={{ padding: 12, fontWeight: 600 }}>{l.title}</td>
+                                <td style={{ padding: 12, fontSize: 13, color: "#666" }}>{l.url}</td>
+                                <td style={{ padding: 12 }}>Column {l.column}</td>
+                                <td style={{ padding: 12 }}>{l.order}</td>
+                                <td style={{ padding: 12 }}>
+                                    <button className="mini-btn" onClick={() => { setEditingId(l.id); setForm({ title: l.title, url: l.url, column: l.column, order: l.order }) }}>Edit</button>
+                                    <button className="mini-btn" style={{ background: "#fef2f2", color: "#ef4444", marginLeft: 8 }} onClick={() => handleDelete(l.id)}>Delete</button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    )
+}
+
+function AdminSocialManager({ token }) {
+    const [accounts, setAccounts] = useState([])
+    const [posts, setPosts] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [postForm, setPostForm] = useState({ platform: "Facebook", content: "", postUrl: "", imageUrl: "" })
+    const [accountForm, setAccountForm] = useState({ platform: "Facebook", url: "", isActive: true })
+    const [editingAccountId, setEditingAccountId] = useState(null)
+    const [syncing, setSyncing] = useState(false)
+    const [syncMsg, setSyncMsg] = useState("")
+
+    const fetchData = useCallback(async () => {
+        try {
+            const [accRes, postRes] = await Promise.all([
+                fetch(`${API_URL}/api/social/accounts`, { headers: { "Authorization": `Bearer ${token}` } }),
+                fetch(`${API_URL}/api/social/posts`, { headers: { "Authorization": `Bearer ${token}` } })
+            ])
+            const accData = await accRes.json()
+            const postData = await postRes.json()
+            setAccounts(Array.isArray(accData) ? accData : [])
+            setPosts(Array.isArray(postData) ? postData : [])
+            setLoading(false)
+        } catch (err) { console.error(err); setLoading(false) }
+    }, [token])
+
+    useEffect(() => { fetchData() }, [fetchData])
+
+    async function handlePostSubmit(e) {
+        e.preventDefault()
+        try {
+            const r = await fetch(`${API_URL}/api/social/posts`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify(postForm)
+            })
+            if (r.ok) {
+                setPostForm({ platform: "Facebook", content: "", postUrl: "", imageUrl: "" })
+                fetchData()
+            }
+        } catch (err) { console.error(err) }
+    }
+
+    async function handleAccountSubmit(e) {
+        e.preventDefault()
+        const method = editingAccountId ? "PUT" : "POST"
+        const url = editingAccountId ? `${API_URL}/api/social/accounts/${editingAccountId}` : `${API_URL}/api/social/accounts`
+        try {
+            const r = await fetch(url, {
+                method,
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify(accountForm)
+            })
+            if (r.ok) {
+                setAccountForm({ platform: "Facebook", url: "", isActive: true })
+                setEditingAccountId(null)
+                fetchData()
+            }
+        } catch (err) { console.error(err) }
+    }
+
+    async function handleRemovePost(id) {
+        if (!confirm("Remove this post from widget?")) return
+        try {
+            await fetch(`${API_URL}/api/social/posts/${id}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${token}` }
+            })
+            fetchData()
+        } catch (err) { console.error(err) }
+    }
+
+    async function handleMetaSync() {
+        setSyncing(true)
+        setSyncMsg("Syncing with Meta...")
+        try {
+            const r = await fetch(`${API_URL}/api/social/sync`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${token}` }
+            })
+            const data = await r.json()
+            setSyncMsg(data.message || "Sync complete")
+            fetchData()
+        } catch (err) { 
+            console.error(err)
+            setSyncMsg("Sync failed. Check backend logs and .env configuration.")
+        } finally {
+            setSyncing(false)
+            setTimeout(() => setSyncMsg(""), 5000)
+        }
+    }
+
+    return (
+        <div style={{ padding: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <h2 style={{ color: "#1B5E20", margin: 0 }}>Social Media & Posts Widget</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+                    {syncMsg && <span style={{ fontSize: 13, color: syncing ? '#1B5E20' : '#64748b', fontWeight: 600 }}>{syncMsg}</span>}
+                    <button 
+                        className="btn btn-green" 
+                        onClick={handleMetaSync} 
+                        disabled={syncing}
+                        style={{ padding: '8px 20px', fontSize: 14, opacity: syncing ? 0.6 : 1 }}
+                    >
+                        {syncing ? 'Syncing...' : 'Sync with Meta API'}
+                    </button>
+                </div>
+            </div>
+            <div className="dashboard-grid">
+                <section>
+                    <div className="panel" style={{ marginBottom: 24 }}>
+                        <h3 style={{ marginTop: 0 }}>Create Social Post (Mock Feed)</h3>
+                        <p style={{ fontSize: 13, color: "#64748b" }}>These will appear in the "Social Media Posts" widget in the footer.</p>
+                        <form onSubmit={handlePostSubmit} style={{ display: "grid", gap: 16 }}>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                                <div>
+                                    <label style={{ fontSize: 13, fontWeight: 700 }}>Platform</label>
+                                    <select value={postForm.platform} onChange={e => setPostForm({ ...postForm, platform: e.target.value })} style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #ddd" }}>
+                                        <option>Facebook</option>
+                                        <option>Twitter (X)</option>
+                                        <option>Instagram</option>
+                                        <option>YouTube</option>
+                                        <option>TikTok</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: 13, fontWeight: 700 }}>Post/External URL</label>
+                                    <input value={postForm.postUrl} onChange={e => setPostForm({ ...postForm, postUrl: e.target.value })} style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #ddd" }} />
+                                </div>
+                            </div>
+                            <div>
+                                <label style={{ fontSize: 13, fontWeight: 700 }}>Post Image URL (Optional)</label>
+                                <input value={postForm.imageUrl} onChange={e => setPostForm({ ...postForm, imageUrl: e.target.value })} style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #ddd" }} placeholder="https://..." />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: 13, fontWeight: 700 }}>Content / Text</label>
+                                <textarea value={postForm.content} onChange={e => setPostForm({ ...postForm, content: e.target.value })} style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #ddd", minHeight: 80 }} required />
+                            </div>
+                            <button type="submit" className="btn btn-green">Push to Widget</button>
+                        </form>
+                    </div>
+
+                    <div className="panel">
+                        <h3 style={{ marginTop: 0 }}>Latest Widget Posts</h3>
+                        {posts.slice(0, 5).map(p => (
+                            <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 12, background: "#f8fafc", borderRadius: 8, marginBottom: 8 }}>
+                                <div>
+                                    <div style={{ fontWeight: 700, fontSize: 14 }}>{p.platform} - {new Date(p.postedAt).toLocaleDateString()}</div>
+                                    <div style={{ fontSize: 13, color: "#475569" }}>{p.content.substring(0, 60)}...</div>
+                                </div>
+                                <button className="mini-btn" style={{ background: "#fef2f2", color: "#ef4444" }} onClick={() => handleRemovePost(p.id)}>Remove</button>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                <section>
+                    <div className="panel" style={{ marginBottom: 24 }}>
+                        <h3 style={{ marginTop: 0 }}>{editingAccountId ? "Edit Account" : "Add Social Account"}</h3>
+                        <form onSubmit={handleAccountSubmit} style={{ display: "grid", gap: 16 }}>
+                            <div>
+                                <label style={{ fontSize: 13, fontWeight: 700 }}>Platform</label>
+                                <select value={accountForm.platform} onChange={e => setAccountForm({ ...accountForm, platform: e.target.value })} style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #ddd" }}>
+                                    <option>Facebook</option>
+                                    <option>Twitter (X)</option>
+                                    <option>Instagram</option>
+                                    <option>YouTube</option>
+                                    <option>LinkedIn</option>
+                                    <option>TikTok</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ fontSize: 13, fontWeight: 700 }}>Profile URL</label>
+                                <input value={accountForm.url} onChange={e => setAccountForm({ ...accountForm, url: e.target.value })} style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #ddd" }} placeholder="https://facebook.com/..." required />
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <input type="checkbox" checked={accountForm.isActive} onChange={e => setAccountForm({ ...accountForm, isActive: e.target.checked })} id="is_active" />
+                                <label htmlFor="is_active" style={{ fontSize: 13, fontWeight: 700 }}>Show in footer</label>
+                            </div>
+                            <div style={{ display: "flex", gap: 8 }}>
+                                <button type="submit" className="btn btn-green">{editingAccountId ? "Update Account" : "Add Account"}</button>
+                                {editingAccountId && <button type="button" className="btn btn-light" onClick={() => { setEditingAccountId(null); setAccountForm({ platform: "Facebook", url: "", isActive: true }) }}>Cancel</button>}
+                            </div>
+                        </form>
+                    </div>
+
+                    <div className="panel">
+                        <h3 style={{ marginTop: 0 }}>Active Social Media Accounts</h3>
+                        <p style={{ fontSize: 13, color: "#64748b" }}>Manage the links to your official profiles.</p>
+                        {accounts.map(acc => (
+                            <div key={acc.id} style={{ padding: 12, border: "1px solid #eee", borderRadius: 8, marginBottom: 12, background: acc.isActive ? "white" : "#f1f5f9" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+                                    <div>
+                                        <div style={{ fontWeight: 800 }}>{acc.platform}</div>
+                                        <div style={{ fontSize: 12, color: "#2563eb", marginBottom: 8, wordBreak: "break-all" }}>{acc.url}</div>
+                                    </div>
+                                    <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: acc.isActive ? "#dcfce7" : "#f1f5f9", color: acc.isActive ? "#166534" : "#475569", fontWeight: 700 }}>
+                                        {acc.isActive ? "ACTIVE" : "HIDDEN"}
+                                    </span>
+                                </div>
+                                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                                    <button className="mini-btn" onClick={() => { setEditingAccountId(acc.id); setAccountForm({ platform: acc.platform, url: acc.url, isActive: acc.isActive }) }}>Edit</button>
+                                    <button className="mini-btn" style={{ background: "#fef2f2", color: "#ef4444" }} onClick={async () => {
+                                        if (confirm("Delete this account link?")) {
+                                            await fetch(`${API_URL}/api/social/accounts/${acc.id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } })
+                                            fetchData()
+                                        }
+                                    }}>Delete</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            </div>
+        </div>
+    )
+}
+

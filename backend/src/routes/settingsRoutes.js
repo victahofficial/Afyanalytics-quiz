@@ -54,6 +54,16 @@ const DEFAULTS = {
         { id: 3, title: 'Tree Planting', image: '/images/photo3.jpg' },
         { id: 4, title: 'Scout Gathering', image: '/images/photo4.jpg' },
     ]),
+    quickLinks: JSON.stringify([
+        { id: 1, label: 'Join\nScouting', url: '/register', icon: 'Join' },
+        { id: 2, label: 'Scout\nMovement', url: '/page/scout-movement', icon: 'Scout' },
+        { id: 3, label: 'Events\n& Camps', url: '/page/events-camps', icon: 'Calendar' },
+        { id: 4, label: 'Official\nLetters', url: '/letters', icon: 'Document' },
+        { id: 5, label: 'Resource\nDownloads', url: '/downloads', icon: 'Download' },
+        { id: 6, label: 'Shop\nGear', url: '/shop', icon: 'Cart' },
+        { id: 7, label: 'Photo\nGallery', url: '/photos', icon: 'Image' },
+        { id: 8, label: 'Rover\nConstitution', url: '/constitution', icon: 'Shield' },
+    ]),
 }
 
 function buildSettings(dbSettings) {

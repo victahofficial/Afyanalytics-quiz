@@ -167,3 +167,31 @@ model PageContent {
   body      String
   updatedAt DateTime @updatedAt
 }
+
+model FooterLink {
+  id        Int      @id @default(autoincrement())
+  title     String
+  url       String
+  column    Int      // 1: About, 2: Quick Links, 3: Useful Links, 4: Opportunities
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model SocialAccount {
+  id        Int      @id @default(autoincrement())
+  platform  String   // e.g. "Facebook", "X", "Instagram"
+  url       String
+  icon      String?
+  isActive  Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+}
+
+model SocialPost {
+  id        Int      @id @default(autoincrement())
+  platform  String
+  content   String
+  postUrl   String?
+  imageUrl  String?
+  postedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+}

@@ -15,6 +15,8 @@ const userRoutes = require('./routes/userRoutes')
 const settingsRoutes = require('./routes/settingsRoutes')
 const documentRoutes = require('./routes/documentRoutes')
 const pageRoutes = require('./routes/pageRoutes')
+const linkRoutes = require('./routes/linkRoutes')
+const socialRoutes = require('./routes/socialRoutes')
 
 const app = express()
 
@@ -47,6 +49,8 @@ app.use('/api/users', userRoutes)
 app.use('/api/settings', settingsRoutes)
 app.use('/api/documents', documentRoutes)
 app.use('/api/pages', pageRoutes)
+app.use('/api/links', linkRoutes)
+app.use('/api/social', socialRoutes)
 
 app.get('/api/health', (_, res) => {
     res.json({ ok: true, message: 'Backend is running' })

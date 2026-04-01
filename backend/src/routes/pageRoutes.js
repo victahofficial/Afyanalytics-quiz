@@ -23,7 +23,7 @@ router.get('/:slug', async (req, res) => {
             where: { slug }
         })
         if (!page) {
-            return res.status(404).json({ message: 'Page not found' })
+            return res.json(null)
         }
         res.json(page)
     } catch (err) {
