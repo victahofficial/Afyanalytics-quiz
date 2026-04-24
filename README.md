@@ -1,86 +1,172 @@
-# Flamingo Website
+# Afyanalytics External Platform Integration Test
 
-This repository contains the source code for the Flamingo website, split into a Node.js/Express backend and a React/Vite frontend.
+This project is a complete submission-ready implementation of the developer test described in `LREB Developer Test Question.pdf`. It builds a small external service that integrates with the Afyanalytics staging API using the required two-step handshake flow.
 
-## Prerequisites
-- **Node.js**: Ensure you have Node.js installed (v18+ recommended).
-- **npm**: Comes with Node.js. Used to install packages.
-- **Database**: A database compatible with Prisma (e.g., PostgreSQL or MySQL).
+## What This Delivers
 
----
+The service:
 
-## 🚀 Installation & Setup
+- initiates the handshake using `POST /initiate-handshake`
+- stores the returned `handshake_token` and `expires_at`
+- completes the handshake using `POST /complete-handshake`
+- blocks reuse of expired handshake tokens
+- logs request and response activity for screenshot and audit purposes
+- exposes a simple browser UI for testing and capturing submission evidence
+- handles invalid credentials, expired tokens, and network/API failures
 
-You will need to install the dependencies for both the frontend and backend separately. 
+## Assignment Inputs
 
-### 1. Backend Setup
-The backend is built with Node.js, Express, and Prisma ORM.
+The assignment PDF provides the following staging credentials:
 
-1. Open your terminal and navigate to the backend folder:
-   ```bash
-   cd backend
-   ```
-2. Install npm dependencies:
-   ```bash
-   npm install
-   ```
-3. Create a `.env` file in the `backend` directory based on your database configuration.
-4. Set up the database with Prisma:
-   ```bash
-   npx prisma generate
-   npx prisma db push
-   ```
-   *(Note: If you have an existing database dump, you can restore from the `database.sql` file located in the root folder).*
+- Platform Name: `Test Platform v2`
+- Platform Key: `afya_2d00d74512953c933172ab924f5073fa`
+- Platform Secret: provided in `.env.example`
+- API Base URL: `https://staging.collabmed.net/api/external`
 
-### 2. Frontend Setup
-The frontend is built with React, Vite, and TailwindCSS.
+## Project Structure
 
-1. Open a new terminal and navigate to the frontend folder:
-   ```bash
-   cd frontend
-   ```
-2. Install npm dependencies:
-   ```bash
-   npm install
-   ```
-3. Create a `.env` file in the `frontend` directory if there are frontend-specific environment variables (e.g., API URLs).
-
----
-
-## 🏃‍♂️ Running the Site (Development)
-
-To run the application locally, you'll need two terminal windows running simultaneously.
-
-**Terminal 1: Start the Backend Server**
-```bash
-cd backend
-npm run dev
+```text
+afya-integration-test/
+  .env.example
+  package.json
+  server.js
+  README.md
+  STACK-NOTES.md
+  logs/
+  public/
+    index.html
+    styles.css
 ```
-*(This will start the backend server using nodemon for auto-reloading.)*
 
-**Terminal 2: Start the Frontend App**
+## Setup Instructions
+
+1. Open a terminal in [afya-integration-test](C:/Users/Admin/Desktop/flamingo-website/afya-integration-test).
+2. Copy `.env.example` to `.env`.
+3. Review the values and update `CALLBACK_URL` if your local port or deployed URL is different.
+4. Start the server:
+
 ```bash
-cd frontend
-npm run dev
+node server.js
 ```
-*(This will start the Vite development server. It will provide a local URL, usually `http://localhost:5173`, which you can open in your browser.)*
 
----
+5. Open `http://localhost:5050`.
 
-## 📦 Building for Production
+## How The Handshake Flow Is Implemented
 
-When you are ready to deploy the application, you need to build the frontend and set up the backend for a production environment.
+### Step 1: Initiate Handshake
 
-**Build the Frontend:**
-```bash
-cd frontend
-npm run build
+The service sends:
+
+```json
+{
+  "platform_name": "Test Platform v2",
+  "platform_key": "afya_2d00d74512953c933172ab924f5073fa",
+  "platform_secret": "<secret>",
+  "callback_url": "http://localhost:5050/callback"
+}
 ```
-*(This command bundles your React app into static files in the `frontend/dist` directory. Depending on your hosting provider, you can serve these files via a CDN, Nginx, or straight from the backend.)*
 
-**Run the Backend in Production:**
-```bash
-cd backend
-npm start
+to:
+
+```text
+POST https://staging.collabmed.net/api/external/initiate-handshake
 ```
-*(This starts the Node server normally without the development overhead.)*
+
+On success, the response is stored in memory and logged to `logs/handshake-log.jsonl`. The service keeps:
+
+- `handshake_token`
+- `expires_at`
+- `expires_in_seconds`
+
+### Step 2: Complete Handshake
+
+The service sends:
+
+```json
+{
+  "handshake_token": "<token from step 1>",
+  "platform_key": "afya_2d00d74512953c933172ab924f5073fa"
+}
+```
+
+to:
+
+```text
+POST https://staging.collabmed.net/api/external/complete-handshake
+```
+
+On success, the service stores:
+
+- `access_token`
+- `refresh_token`
+- `expires_at`
+- `token_type`
+- `platform_name`
+
+## How Expiry Is Handled
+
+The assignment states that the handshake token expires in 15 minutes. This implementation handles that in three ways:
+
+1. The service stores `handshakeExpiresAt` after initiation.
+2. Before completing the handshake with a stored token, it checks whether the token is already expired.
+3. If the token is expired, the service rejects the completion request and requires a fresh handshake.
+
+The `Run Full Flow` button uses a safer approach for demos and submission evidence: it initiates and completes the handshake immediately in one flow so the 15-minute window is not missed.
+
+## Test Routes
+
+- `GET /` - browser UI for running the flow
+- `GET /api/status` - current token and flow state
+- `POST /api/initiate` - initiate handshake only
+- `POST /api/complete` - complete handshake using the stored token
+- `POST /api/authenticate` - run initiate and complete as one sequence
+- `GET /callback` - callback endpoint configured for the test
+
+## Logging And Screenshot Evidence
+
+The assignment asks for a screenshot of the request parameters and response. This project supports that in two ways:
+
+1. The browser UI shows the current status and last API response.
+2. Every request and response is written to:
+
+```text
+logs/handshake-log.jsonl
+```
+
+That file can be used to verify:
+
+- the exact payload sent
+- whether the secret was redacted in local logs
+- the returned handshake token
+- the expiry time
+- success or failure of the authentication flow
+
+## Error Handling
+
+The service catches and reports:
+
+- invalid credentials
+- expired handshake token
+- missing environment variables
+- network failures
+- invalid or non-JSON API responses
+- unknown routes
+
+## Submission Checklist
+
+- Source code: included in this folder
+- README with setup and implementation details: included
+- Expiry handling explanation: included
+- Request/response screenshot: capture from the browser UI after running the flow
+- Email destination from the PDF: `data@afya.ai`
+
+## Verified Test Run
+
+This implementation was successfully tested against the staging API on `2026-04-23`.
+
+- Successful run details: [RUN-RESULTS.md](C:/Users/Admin/Desktop/flamingo-website/afya-integration-test/RUN-RESULTS.md)
+- Raw request and response log: generated locally during testing and intentionally excluded from Git
+
+## Notes About The Afya Website And Technology Choices
+
+See [STACK-NOTES.md](C:/Users/Admin/Desktop/flamingo-website/afya-integration-test/STACK-NOTES.md) for a clear explanation of which language is used where and why, based on public information from `https://afya.ai`.
